@@ -1,0 +1,15 @@
+echo "*************************************************************"
+echo "Username Scraper by @sw@mp_f0x"
+echo "*************************************************************"
+
+echo "">page_id.txt
+
+for i in $(cat names.txt)
+	do echo "Trying $i..."
+	curl -s --data "name=$i&search_other_name=title" http://www.client.com/index.php |awk '/view\=/&&gsub(/.*view\=|'\''\>[A-Z].*/,"")'>> page_id.txt
+done
+
+for j in $(sort -u page_id.txt)
+	do username=$(curl -s "http://www.client.com/index.php?view=$j"|awk '/Username\:/&&gsub(/.*Username:<\/td><td>|<\/td.*/,"")'|tee -a usernames.txt)
+	echo "Username Found: $username"
+done
