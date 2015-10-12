@@ -9,9 +9,6 @@ import os
 import logging
 import shutil
 
-#Options Menu
-
-
 
 def setup():
 
@@ -258,9 +255,17 @@ def pentest_setup():
 
 def nfsulator():
 	print "===================================="
-	print "Beginning Rawr Scan"
+	print "Starting NFSulator (by @MrMindscrew)"
 	print "===================================="
 
+	os.system("awk '!/#/{print $2}' %s2049.gnmap | sort -u > %snfs.txt" %(client_folder, client_folder))
+	nfs_file=open("%snfs.txt" %(client_folder))
+	nfs_hosts=nfs_file.readlines()
+	if not os.path.exists("/tmp/nfs"):
+		os.makedirs("/tmp/nfs")
+	
+	for ip in nfs_hosts:
+		os.system('''showmount -e  %s | grep "/" | awk '{print "%s:"$1 }' ''' %(ip, ip))
 
 	global message
 	message="Kickoff Scan complete"
@@ -285,7 +290,7 @@ def main_menu(check=""):
 		print("	[2] Web Interface Scan + Rawr")
 		print("	[3] Nmap Service Scan")
 		print("	[4] Pentest Setup")
-		print("	[5] NFSulator")
+		print("	[5] NFSulator (by @MrMindscrew)")
 		print("")
 		selection=raw_input("Please select an option: ")
 		if 1 <= int(selection) <= 5:
@@ -310,3 +315,5 @@ try:
 		unused_var=os.system("clear")
 except KeyboardInterrupt:
 	print("Later!")	
+
+
