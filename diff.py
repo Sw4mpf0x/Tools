@@ -1,3 +1,4 @@
+#Prints out unique lines between two files. 
 file1 = open("file2.txt", "r")
 file2 = open("file1.txt", "r")
 list1 = file1.readlines()
