@@ -1,8 +1,16 @@
 #!/usr/bin/python
 # Andrew Luke @sw4mp_f0x
+#ToDo: 
+#	Standalone scan option for at least ping sweep.
+#	Check for live-hosts before ping-sweep and ask if you still want to run. 
+# 	Fix smtp relay file overwritten by user enum
 #
-# 
-#
+#Todo:
+#- Add ssh and telnet brute forcing
+#- Add NFSulator
+#- Implement new webinterface tool
+
+
 import sys
 import subprocess
 import os
@@ -13,7 +21,9 @@ import shutil
 def setup():
 
 	#Check for client folder. Create if it does not exist
-	clients_path="/root/"
+	clients_path="/root/Clients/"
+	if not os.path.exists(clients_path):
+		os.makedirs(clients_path)
 	Client=raw_input("Client name: ")
 	global client_folder
 	client_folder = clients_path + Client + "/"
@@ -46,7 +56,7 @@ def execute(selection):
 def kickoff():
 	#Ping-Sweep
 	print "===================================="
-	print "Beginning Discovery Scan"
+	print "Beginning Kickoff Scan"
 	print "===================================="
 	logging.info("Beginning Ping Sweep")
 	ping_sweep=subprocess.Popen(['nmap -sn -v10 -T4 --open -iL %sscope.txt --excludefile %sexcludes.txt -oG %sping-sweep --stats-every 1m' %(client_folder, client_folder, client_folder)], shell=True) 
@@ -67,12 +77,22 @@ def kickoff():
 	print "===================================="
 	print "Beginning Targetted Service Scans"
 	print "===================================="
+	
 	logging.info("Beginning Targeted Port Scan")
-	ports=["445", "21", "23", "25", "53", "389", "686", "1433", "2049", "3306", "5800,5900-5920", "5985", "10000", "80"]
+	ports=["22", "23", "53", "389", "686", "2049", "5800,5900-5920", "5985", "10000"]
+	ports_NSE=["445", "21", "25", "1433", "3306", "80"]
+	
 	for port in ports:
 		logging.info("Scanning port %s." %(port))
-		targetted_ports=subprocess.Popen(['nmap -Pn -n -p%s -sV -sC --open -oA %s%s -v10 --stats-every 1m -iL %slive-hosts.txt' %(port, client_folder, port, client_folder)], shell=True) 
-		targetted_ports.wait()
+		targetted_ports=subprocess.Popen(['nmap -Pn -n -p%s -sV --open -oA %s%s -v10 --stats-every 1m -iL %slive-hosts.txt' %(port, client_folder, port, client_folder)], shell=True) 
+		targetted_ports.wait()	
+
+	for port in ports_NSE:
+		logging.info("Scanning port %s." %(port))
+		targetted_ports_with_NSE=subprocess.Popen(['nmap -Pn -n -p%s -sV -sC --open -oA %s%s -v10 --stats-every 1m -iL %slive-hosts.txt' %(port, client_folder, port, client_folder)], shell=True) 
+		targetted_ports_with_NSE.wait()
+	
+
 	logging.info("Targeted Port Scan Complete")
 
 	if not os.path.exists(client_folder + "Finals"):
@@ -269,6 +289,231 @@ def nfsulator():
 
 	global message
 	message="Kickoff Scan complete"
+
+def tcp_server(bind_ip, bind_port=9999):
+	import socket
+	import threading
+	
+	server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	
+	server.bind((bind_ip,bind_port))
+	
+	server.listen(5)
+	
+	print "[*] Listening on %s:%d" % (bind_ip,bind_port)
+	
+	# this is our client handling thread
+	def handle_client(client_socket):
+	
+	    # just print out what the client sends
+	    request = client_socket.recv(1024)
+	    
+	    print "[*] Received: %s" % request    
+	
+	    # send back a packet
+	    client_socket.send("ACK!")
+	    print client_socket.getpeername()
+	    client_socket.close()
+
+
+	while True:
+	
+	    client,addr = server.accept()
+	    
+	    print "[*] Accepted connection from: %s:%d" % (addr[0],addr[1])
+	
+	    # spin up our client thread to handle incoming data
+	    client_handler = threading.Thread(target=handle_client,args=(client,))
+	    client_handler.start()
+
+
+#TCP Proxy code from Black Hat Python by Justin Seitz
+def tcp_proxy():
+	import sys
+	import socket
+	import threading
+	
+	
+	
+	# this is a pretty hex dumping function directly taken from
+	# http://code.activestate.com/recipes/142812-hex-dumper/
+	def hexdump(src, length=16):
+	    result = []
+	    digits = 4 if isinstance(src, unicode) else 2
+	
+	    for i in xrange(0, len(src), length):
+	       s = src[i:i+length]
+	       hexa = b' '.join(["%0*X" % (digits, ord(x))  for x in s])
+	       text = b''.join([x if 0x20 <= ord(x) < 0x7F else b'.'  for x in s])
+	       result.append( b"%04X   %-*s   %s" % (i, length*(digits + 1), hexa, text) )
+	
+	    print b'\n'.join(result)
+	
+	
+	def receive_from(connection):
+	        
+	        buffer = ""
+	
+		# We set a 2 second time out depending on your 
+		# target this may need to be adjusted
+		connection.settimeout(2)
+		
+	        try:
+	                # keep reading into the buffer until there's no more data
+			# or we time out
+	                while True:
+	                        data = connection.recv(4096)
+	                        
+	                        if not data:
+	                                break
+	                        
+	                        buffer += data
+	                
+	                
+	        except:
+			pass
+	        
+	        return buffer
+	
+	# modify any requests destined for the remote host
+	def request_handler(buffer):
+		# perform packet modifications
+		return buffer
+	
+	# modify any responses destined for the local host
+	def response_handler(buffer):
+		# perform packet modifications
+		return buffer
+	
+	
+	def proxy_handler(client_socket, remote_host, remote_port, receive_first):
+	        
+	        # connect to the remote host
+	        remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	        remote_socket.connect((remote_host,remote_port))
+	
+	        # receive data from the remote end if necessary
+	        if receive_first:
+	                
+	                remote_buffer = receive_from(remote_socket)
+	                hexdump(remote_buffer)
+			
+	                # send it to our response handler
+			remote_buffer = response_handler(remote_buffer)
+	                
+	                # if we have data to send to our local client send it
+	                if len(remote_buffer):
+	                        print "[<==] Sending %d bytes to localhost." % len(remote_buffer)
+	                        client_socket.send(remote_buffer)
+	                        
+		# now let's loop and reading from local, send to remote, send to local
+		# rinse wash repeat
+		while True:
+			
+			# read from local host
+			local_buffer = receive_from(client_socket)
+	
+	
+			if len(local_buffer):	
+				
+				print "[==>] Received %d bytes from localhost." % len(local_buffer)
+				hexdump(local_buffer)
+				
+				# send it to our request handler
+				local_buffer = request_handler(local_buffer)
+				
+				# send off the data to the remote host
+				remote_socket.send(local_buffer)
+				print "[==>] Sent to remote."
+			
+			
+			# receive back the response
+			remote_buffer = receive_from(remote_socket)
+	
+			if len(remote_buffer):
+				
+				print "[<==] Received %d bytes from remote." % len(remote_buffer)
+				hexdump(remote_buffer)
+				
+				# send to our response handler
+				remote_buffer = response_handler(remote_buffer)
+			
+				# send the response to the local socket
+				client_socket.send(remote_buffer)
+				
+				print "[<==] Sent to localhost."
+			
+			# if no more data on either side close the connections
+			if not len(local_buffer) or not len(remote_buffer):
+				client_socket.close()
+				remote_socket.close()
+				print "[*] No more data. Closing connections."
+			
+				break
+			
+	def server_loop(local_host,local_port,remote_host,remote_port,receive_first):
+	                
+	        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	
+	        try:
+	                server.bind((local_host,local_port))
+	        except:
+	                print "[!!] Failed to listen on %s:%d" % (local_host,local_port)
+	                print "[!!] Check for other listening sockets or correct permissions."
+	                sys.exit(0)
+	                
+	        print "[*] Listening on %s:%d" % (local_host,local_port)
+	        
+	        
+	        server.listen(5)        
+	        
+	        while True:
+	                client_socket, addr = server.accept()
+	               
+	                # print out the local connection information
+	                print "[==>] Received incoming connection from %s:%d" % (addr[0],addr[1])
+	                
+	                # start a thread to talk to the remote host
+	                proxy_thread = threading.Thread(target=proxy_handler,args=(client_socket,remote_host,remote_port,receive_first))
+	                proxy_thread.start()
+	
+	def main():
+	        
+	    # no fancy command line parsing here
+	    if len(sys.argv[1:]) != 5:
+	        print "Usage: ./proxy.py [localhost] [localport] [remotehost] [remoteport] [receive_first]"
+	        print "Example: ./proxy.py 127.0.0.1 9000 10.12.132.1 9000 True"
+	        sys.exit(0)
+	    
+	    # setup local listening parameters
+	    local_host  = sys.argv[1]
+	    local_port  = int(sys.argv[2])
+	    
+	    # setup remote target
+	    remote_host = sys.argv[3]
+	    remote_port = int(sys.argv[4])
+	    
+	    # this tells our proxy to connect and receive data
+	    # before sending to the remote host
+	    receive_first = sys.argv[5]
+	    
+	    if "True" in receive_first:
+		    receive_first = True
+	    else:
+		    receive_first = False
+		    
+	    
+	    # now spin up our listening socket
+	    server_loop(local_host,local_port,remote_host,remote_port,receive_first)
+	        
+	main() 
+
+def ssh_telnet_brute():
+
+	logging.info("Scanning port %s." %(port))
+	targetted_ports=subprocess.Popen(['nmap -Pn -n -p%s -sV --open -oA %s%s -v10 --stats-every 1m -iL %slive-hosts.txt' %(port, client_folder, port, client_folder)], shell=True) 
+	targetted_ports.wait()
+
 
 def main_menu(check=""):
 	try:
