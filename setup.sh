@@ -3,6 +3,7 @@ apt-get update
 touch /var/www/ghostdriver.log
 chmod 755 /var/www/ghostdriver.log
 chown www-data /var/www/ghostdriver.log
+
 #Setup Postgresql
 service postgresql start
 su postgres << 'EOF'
@@ -11,14 +12,21 @@ psql -c "CREATE USER bloodhound WITH PASSWORD 'bloodhound' CREATEDB;"
 psql -c 'GRANT ALL PRIVILEGES ON DATABASE "BloodHound_db" TO bloodhound;'
 EOF
 
-
+mv BloodHound/ /opt/
 #Install PhantomJS
 apt-get -y install python-requests python-m2crypto build-essential chrpath libssl-dev libxft-dev libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev
 
-PHANTOM_JS="phantomjs-1.9.8-linux-i686"
 
 cd ~
-export PHANTOM_JS="phantomjs-1.9.8-linux-i686"
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+	PHANTOM_JS="phantomjs-1.9.8-linux-x86_64"
+	export PHANTOM_JS="phantomjs-1.9.8-linux-x86_64"
+else
+	PHANTOM_JS="phantomjs-1.9.8-linux-i686"
+	export PHANTOM_JS="phantomjs-1.9.8-linux-i686"
+fi
+
 wget https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOM_JS.tar.bz2
 tar xvjf $PHANTOM_JS.tar.bz2
 
@@ -27,21 +35,15 @@ ln -sf /usr/local/share/$PHANTOM_JS/bin/phantomjs /usr/local/bin
 rm $PHANTOM_JS.tar.bz2
 
 #Make BloodHound Directory
-
-yes | cp -rf BloodHound/ /opt/BloodHound/
-
-
 #start postgresql service at boot
 #http://thecodeship.com/deployment/deploy-django-apache-virtualenv-and-mod_wsgi/
 #https://www.digitalocean.com/community/tutorials/how-to-serve-django-applications-with-apache-and-mod_wsgi-on-ubuntu-14-04
-
-
-
 #Install Python Virtual Environment
-apt-get -y install python-pip python-dev build-essential libpq-dev
+apt-get -y install python-pip python-dev build-essential libpq-dev swig
 pip install --upgrade pip
 pip install Django
 pip install virtualenvwrapper
+pip install selenium
 echo "export WORKON_HOME=$HOME/.virtualenvs" >> ~/.bash_profile
 echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bash_profile
 source ~/.bash_profile
@@ -57,7 +59,7 @@ pip install Pillow==2.6.1 requests
 ./manage.py migrate
 ./manage.py makemigrations
 ./manage.py migrate
-
+chmod 777 /opt/BloodHound/Web_Scout/static/Web_Scout/
 #Setup Python Virtual Environment
 #echo "export WORKON_HOME=$HOME/.virtualenvs" >> ~/.bash_profile
 #echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bash_profile
@@ -75,8 +77,7 @@ deactivate
 
 
 #Setup Apache
-apt-get -y install apache2 apache2.2-common apache2-mpm-prefork apache2-utils libexpat1 libapache2-mod-wsgi
-service apache2 restart
+apt-get -y install apache2 libapache2-mod-wsgi
 
 echo "<VirtualHost *:8000>" >> /etc/apache2/sites-available/000-default.conf
 echo "" >> /etc/apache2/sites-available/000-default.conf
