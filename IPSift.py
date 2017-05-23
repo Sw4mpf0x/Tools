@@ -64,6 +64,7 @@ def main():
 	parser = OptionParser(usage=usage)
 	parser.add_option('-g', '--gnmap', action="store", help='GNmap file to parse', dest='gnmap_path')
 	parser.add_option('-o', '--output', action="store", help='Output file name', dest='output_path')
+	parser.add_option('-f', '--falsepos', action="store", help='False Positive Output file name', dest='false_output_path')
 	parser.add_option('-t', '--txt', action="store", help="Txt file to parse", dest='txt_path')
 	parser.add_option('-c', '--count', action="store", help="Marked /24 as false positive if number of hosts in /24 is >= this number", dest='count', default='255')
 
@@ -82,6 +83,7 @@ def main():
 	print str(len(addresses)) + " addresses found"
 	print "Processing addresses..."
 	validaddresses = []
+	falsepositives = []
 	validrange = []
 	workingaddress = ""
 	for address in addresses:
@@ -96,12 +98,15 @@ def main():
 				if len(validrange) < int(options.count):
 					print "Valid address range " + workingaddress + ".0/24 found"
 					validaddresses.append(validrange)
+				else:
+					falsepositives.append([workingaddress + ".0/24])
 				workingaddresslist = address.split(".")
 				workingaddress = ".".join(workingaddresslist[0:3]) 
 				validrange = [address]
 	
 	create_output_file(options.output_path, validaddresses, options.count)
-	
+	if options.false_output_path:
+		create_output_file(options.false_output_path, falsepositives, options.count)
 	
 if __name__ == "__main__":
     main()
